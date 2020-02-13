@@ -22,6 +22,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def set_ui(self):
         self.__layout_main = QtWidgets.QHBoxLayout()  # 总布局
         self.__layout_fun_button = QtWidgets.QVBoxLayout()  # 按键布局
+        self.__layout_input = QtWidgets.QVBoxLayout()
+        self.__layout_all_fun = QtWidgets.QVBoxLayout()
         self.__layout_data_show = QtWidgets.QVBoxLayout()  # 数据(视频)显示布局
         self.button_open_camera = QtWidgets.QPushButton('打开相机')  # 建立用于打开摄像头的按键
         self.button_get_image = QtWidgets.QPushButton('录入')
@@ -31,6 +33,16 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.button_close.setMinimumHeight(50)
         self.button_get_image.setMinimumHeight(50)
         self.button_test_image.setMinimumHeight(50)
+
+        self.nameinput = QtWidgets.QLineEdit()
+        self.noinput = QtWidgets.QLineEdit()
+        self.nameident = QtWidgets.QLabel()
+        self.statusbar = self.statusBar()
+
+        self.nameident.setFixedSize(100, 30)
+        self.nameident.setText('输入录入信息：')
+        self.nameinput.setPlaceholderText('输入名称')
+        self.noinput.setPlaceholderText('输入学号')
 
         menubar = self.menuBar()
         funMenu = menubar.addMenu('Mode')
@@ -46,12 +58,13 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         funMenu.addAction(self.RGBDAct)
         funMenu.addAction(self.rootAct)
 
-        self.RGBAct.setToolTip('Face Recognition with only RGD image')
-        self.DAct.setToolTip('Face Recognition with only Depth image')
-        self.RGBDAct.setToolTip('Face Recognition with both RGD image and Depth image')
-        self.rootAct.setToolTip('The authority mode to register information')
+        self.RGBAct.setStatusTip('Face Recognition with only RGD image')
+        self.DAct.setStatusTip('Face Recognition with only Depth image')
+        self.RGBDAct.setStatusTip('Face Recognition with both RGD image and Depth image')
+        self.rootAct.setStatusTip('The authority mode to register information')
 
         self.button_close.move(10, 100)  # 移动按键
+
         '''信息显示'''
         self.label_show_camera = QtWidgets.QLabel()  # 定义显示视频的Label
         self.label_show_camera.setFixedSize(321, 241)  # 给显示视频的Label设置大小为641x481
@@ -63,11 +76,19 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.__layout_fun_button.addWidget(self.button_get_image)
         self.__layout_fun_button.addWidget(self.button_test_image)
         self.__layout_fun_button.addWidget(self.button_close)  # 把退出程序的按键放到按键布局中
+        self.__layout_input.addWidget(self.nameident)
+        self.__layout_input.addWidget(self.nameinput)
+        self.__layout_input.addWidget(self.noinput)
+        # self.__layout_input.addWidget(self.button_get_image)
+
+        self.__layout_all_fun.addLayout(self.__layout_fun_button)
+        self.__layout_all_fun.addLayout(self.__layout_input)
 
         self.__layout_data_show.addWidget(self.label_show_camera)
         self.__layout_data_show.addWidget(self.label_show_camera_depth)
         '''把某些控件加入到总布局中'''
-        self.__layout_main.addLayout(self.__layout_fun_button)  # 把按键布局加入到总布局中
+        # self.__layout_main.addLayout(self.__layout_fun_button)  # 把按键布局加入到总布局中
+        self.__layout_main.addLayout(self.__layout_all_fun)
         self.__layout_main.addLayout(self.__layout_data_show)
         # self.__layout_main.addWidget(self.label_show_camera)  # 把用于显示视频的Label加入到总布局中
         # self.__layout_main.addWidget(self.label_show_camera_depth)
@@ -79,6 +100,9 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle('RGBD_FR_V0')
         self.button_get_image.hide()
+        self.nameident.hide()
+        self.nameinput.hide()
+        self.noinput.hide()
 
 
     '''初始化所有槽函数'''
@@ -180,34 +204,71 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.label_show_camera_depth.setPixmap(QtGui.QPixmap.fromImage(showImage1))
 
     def capture(self):
-        if(self.modeFlag == 0):
-            flag, self.image = self.cap.read()  # 从视频流中读取
-            print(self.image)
-        elif(self.modeFlag == 1):
-            flag, self.image_depth = self.cap_depth.read()
-            print(self.image_depth)
+        if(self.timer_camera.isActive() == False):
+            self.statusbar.showMessage('Error: Please Open the Camera!')
         else:
-            flag, self.image = self.cap.read()
-            flag1, self.image_depth = self.cap_depth.read()
-            print(self.image)
-            print(self.image_depth)
-
+            if(self.modeFlag == 0):
+                flag, self.image = self.cap.read()  # 从视频流中读取
+                # print(self.image)
+                sno = self.noinput.text()
+                sname = self.nameinput.text()
+                print(sno == '')
+                if(sno == ''):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                elif(sname == ''):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                else:
+                    self.statusbar.showMessage('Success: Information has been registered!')
+                    cv2.imwrite('./gallery/rgb/' + sno + '.jpg', self.image)
+            elif(self.modeFlag == 1):
+                flag, self.image_depth = self.cap_depth.read()
+                # print(self.image_depth)
+                sno = self.noinput.text()
+                sname = self.nameinput.text()
+                print(sno)
+                if (sno == None):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                elif (sname == None):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                else:
+                    self.statusbar.showMessage('Success: Information has been registered!')
+                    cv2.imwrite('./gallery/depth/' + sno + '.jpg', self.image_depth)
+            else:
+                flag, self.image = self.cap.read()
+                flag1, self.image_depth = self.cap_depth.read()
+                # print(self.image)
+                # print(self.image_depth)
+                sno = self.noinput.text()
+                sname = self.nameinput.text()
+                print(sno)
+                if (sno == None):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                elif (sname == None):
+                    self.statusbar.showMessage('Error: Pleas Enter Name and ID!')
+                else:
+                    self.statusbar.showMessage('Success: Information has been registered!')
+                    cv2.imwrite('./gallery/rgbd/rgb/' + sno + '.jpg', self.image)
+                    cv2.imwrite('./gallery/rgbd/depth/' + sno + '.jpg', self.image_depth)
     def test(self):
-        if (self.modeFlag == 0):
-            flag, self.image = self.cap.read()  # 从视频流中读取
-            print(self.image)
-        elif (self.modeFlag == 1):
-            flag, self.image_depth = self.cap_depth.read()
-            print(self.image_depth)
+        if(self.timer_camera.isActive() == False):
+            self.statusbar.showMessage('Error: Please Open the Camera!')
         else:
-            flag, self.image = self.cap.read()
-            flag1, self.image_depth = self.cap_depth.read()
-            print(self.image)
-            print(self.image_depth)
+            if (self.modeFlag == 0):
+                flag, self.image = self.cap.read()  # 从视频流中读取
+                print(self.image)
+            elif (self.modeFlag == 1):
+                flag, self.image_depth = self.cap_depth.read()
+                print(self.image_depth)
+            else:
+                flag, self.image = self.cap.read()
+                flag1, self.image_depth = self.cap_depth.read()
+                print(self.image)
+                print(self.image_depth)
 
     def selectRGBMode(self):
         if(self.modeFlag == 1):
             self.label_show_camera.show()
+            self.label_show_camera_depth.hide()
             self.modeFlag = 0
             self.DAct.setChecked(False)
             self.RGBDAct.setChecked(False)
@@ -217,6 +278,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             self.button_open_camera.setText('打开相机')
             print('RGB')
         elif(self.modeFlag == 2):
+            self.nameinput.clear()
+            self.noinput.clear()
+            self.nameident.hide()
+            self.nameinput.hide()
+            self.noinput.hide()
             self.label_show_camera_depth.hide()
             self.modeFlag = 0
             self.DAct.setChecked(False)
@@ -288,6 +354,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         else:
             self.isRoot = 0
             self.button_get_image.hide()
+            self.nameinput.clear()
+            self.noinput.clear()
+            self.nameident.hide()
+            self.nameinput.hide()
+            self.noinput.hide()
 
     def showDialog(self):
 
@@ -325,6 +396,9 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         if(passwd == 'scubrlabs'):
             self.isRoot = 1
             self.button_get_image.show()
+            self.nameident.show()
+            self.nameinput.show()
+            self.noinput.show()
             self.passwdinput.close()
         else:
             self.wrongpasswd.show()
